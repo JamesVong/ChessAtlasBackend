@@ -16,4 +16,4 @@ COPY . .
 EXPOSE 5001 
 
 # Command to run the application using Gunicorn 
-CMD gunicorn --bind 0.0.0.0:$PORT --workers 2 run:app
+CMD gunicorn --bind 0.0.0.0:$PORT --workers 1 run:app
