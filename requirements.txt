@@ -1,6 +1,6 @@
 Flask
 Flask-Cors
-tensorflow==2.15
+tensorflow==2.15.0
 opencv-python
 numpy
-requests
+gunicorn
