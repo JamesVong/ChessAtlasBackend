@@ -18,10 +18,12 @@ def analyze_board_endpoint():
         image_file = request.files['image']
         image_bytes = image_file.read()
         include_cropped_image = request.args.get("include_cropped_image", "true").strip().lower() not in {"0", "false", "no"}
+        orientation = request.args.get("orientation", request.form.get("orientation", "White"))
         
         result, error_msg = analysis_service.analyze_image(
             image_bytes,
             include_cropped_image=include_cropped_image,
+            orientation=orientation,
         )
         
         if error_msg:

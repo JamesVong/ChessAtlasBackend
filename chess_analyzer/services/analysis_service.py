@@ -5,6 +5,8 @@ from config import MAX_IMAGE_DIM, PIECE_TO_FEN
 from chess_analyzer.vision import preprocessing
 
 class ChessAnalysisService:
+    VALID_ORIENTATIONS = {"white": "White", "black": "Black"}
+
     def __init__(self, detector, predictor):
         self.detector = detector
         self.predictor = predictor
@@ -32,7 +34,16 @@ class ChessAnalysisService:
             fen_rows.append(fen_row)
         return "/".join(fen_rows)
 
-    def analyze_image(self, image_bytes, include_cropped_image=True):
+    def _normalize_orientation(self, orientation):
+        if orientation is None:
+            return "White"
+        return self.VALID_ORIENTATIONS.get(str(orientation).strip().lower())
+
+    def analyze_image(self, image_bytes, include_cropped_image=True, orientation="White"):
+        normalized_orientation = self._normalize_orientation(orientation)
+        if normalized_orientation is None:
+            return None, 'Invalid orientation. Use "White" or "Black".'
+
         nparr = np.frombuffer(image_bytes, np.uint8)
         image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
         if image is None:
@@ -61,7 +72,7 @@ class ChessAnalysisService:
         piece_labels = self.predictor.predict(squares)
         
         # 4. Convert to FEN
-        fen_string = self._convert_to_fen(piece_labels)
+        fen_string = self._convert_to_fen(piece_labels, orientation=normalized_orientation)
         
         # 5. Format response
         result = {"fen": fen_string}

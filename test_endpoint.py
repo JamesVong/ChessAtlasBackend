@@ -4,8 +4,8 @@ import os
 import base64
 
 # --- Configuration ---
-API_URL = "https://api.chess-atlas.com/api/v1/analyze-board"
-IMAGE_PATH = "./test_images/_B4lR3NYwI8_frame_13.png" # Make sure this image exists
+API_URL = "http://api.chess-atlas.com/api/v1/analyze-board"
+IMAGE_PATH = "./test_images/-ZVbDR3sRRo_frame_15.png" # Make sure this image exists
 
 # --- Check if image exists ---
 if not os.path.exists(IMAGE_PATH):
@@ -18,7 +18,8 @@ else:
     try:
         # --- Send the request ---
         print("Sending request to API...")
-        response = requests.post(API_URL, files=files)
+        print(f"URL: {API_URL}")
+        response = requests.post(API_URL, files=files, data={"orientation": "Black", "include_cropped_image": "true"})
         
         # --- Print the results ---
         print(f"Status Code: {response.status_code}")
@@ -27,7 +28,8 @@ else:
         if response.status_code == 200:
             data = response.json()
             print("Response JSON:")
-            print(data)
+            # print(data)
+            print(data['data']['fen'])  # Print just the FEN string for clarity
             
             # Bonus: Decode and save the returned cropped image to verify it
             if data['status'] == 'success':
