@@ -4,7 +4,7 @@ import os
 import base64
 
 # --- Configuration ---
-API_URL = "https://chessatlasbackend.onrender.com/api/v1/analyze-board"
+API_URL = "https://api.chess-atlas.com/api/v1/analyze-board"
 IMAGE_PATH = "./test_images/_B4lR3NYwI8_frame_13.png" # Make sure this image exists
 
 # --- Check if image exists ---

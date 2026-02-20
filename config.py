@@ -8,6 +8,7 @@ TEMPLATE_PATH = os.path.join(BASE_DIR, 'templates', 'chessboard_template.png')
 
 # Model and Image settings
 SQUARE_SIZE = (64, 64)
+MAX_IMAGE_DIM = int(os.getenv("MAX_IMAGE_DIM", "1600"))
 LABEL_MAPPING = {
     "0": "Black_Bishop", "1": "Black_King", "2": "Black_Knight", "3": "Black_Pawn", "4": "Black_Queen", "5": "Black_Rook",
     "6": "Empty",

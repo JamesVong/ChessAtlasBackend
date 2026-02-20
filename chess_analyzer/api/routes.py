@@ -17,8 +17,12 @@ def analyze_board_endpoint():
     try:
         image_file = request.files['image']
         image_bytes = image_file.read()
+        include_cropped_image = request.args.get("include_cropped_image", "true").strip().lower() not in {"0", "false", "no"}
         
-        result, error_msg = analysis_service.analyze_image(image_bytes)
+        result, error_msg = analysis_service.analyze_image(
+            image_bytes,
+            include_cropped_image=include_cropped_image,
+        )
         
         if error_msg:
             return jsonify({"status": "error", "message": error_msg}), 422

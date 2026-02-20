@@ -1,9 +1,8 @@
 import cv2
 import numpy as np
 import base64
-from config import PIECE_TO_FEN
-from chess_analyzer.vision import detector, preprocessing
-from chess_analyzer.ml.predictor import PiecePredictor
+from config import MAX_IMAGE_DIM, PIECE_TO_FEN
+from chess_analyzer.vision import preprocessing
 
 class ChessAnalysisService:
     def __init__(self, detector, predictor):
@@ -33,9 +32,20 @@ class ChessAnalysisService:
             fen_rows.append(fen_row)
         return "/".join(fen_rows)
 
-    def analyze_image(self, image_bytes):
+    def analyze_image(self, image_bytes, include_cropped_image=True):
         nparr = np.frombuffer(image_bytes, np.uint8)
         image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+        if image is None:
+            return None, "Could not decode image data."
+        image_height, image_width = image.shape[:2]
+        largest_side = max(image_height, image_width)
+        if largest_side > MAX_IMAGE_DIM:
+            scale = MAX_IMAGE_DIM / float(largest_side)
+            image = cv2.resize(
+                image,
+                (int(image_width * scale), int(image_height * scale)),
+                interpolation=cv2.INTER_AREA,
+            )
 
         # 1. Detect board
         match_coords = self.detector.detect(image)
@@ -54,9 +64,12 @@ class ChessAnalysisService:
         fen_string = self._convert_to_fen(piece_labels)
         
         # 5. Format response
-        _, buffer = cv2.imencode('.jpg', cropped_board)
-        b64_image = base64.b64encode(buffer).decode('utf-8')
-        data_url = f"data:image/jpeg;base64,{b64_image}"
-        
-        result = {"fen": fen_string, "cropped_image": data_url}
+        result = {"fen": fen_string}
+        if include_cropped_image:
+            ok, buffer = cv2.imencode(".jpg", cropped_board, [cv2.IMWRITE_JPEG_QUALITY, 85])
+            if not ok:
+                return None, "Could not encode cropped board image."
+            b64_image = base64.b64encode(buffer).decode("utf-8")
+            result["cropped_image"] = f"data:image/jpeg;base64,{b64_image}"
+
         return result, None

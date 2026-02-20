@@ -8,6 +8,7 @@ class TemplateBoardDetector:
             raise FileNotFoundError(f"Template image not found at {template_image_path}")
         self.template_image = template
         self.template_gray = cv2.cvtColor(self.template_image, cv2.COLOR_BGR2GRAY)
+        self.template_height, self.template_width = self.template_gray.shape[:2]
         self.COARSE_SCALE_RANGE = np.linspace(0.05, 0.7, 50)
         self.THRESHOLD = 0.4
 
@@ -25,32 +26,44 @@ class TemplateBoardDetector:
     def detect(self, image):
         ds_factor = 0.5
         frame_gray_full = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-        template_gray_full = cv2.cvtColor(self.template_image, cv2.COLOR_BGR2GRAY)
 
         # Improve speed by downscaling frames
-        frame_small = cv2.resize(frame_gray_full, None,
-                                    fx=ds_factor, fy=ds_factor,
-                                    interpolation=cv2.INTER_AREA)
-
-        template_gray_small = cv2.resize(template_gray_full, None,
-                            fx=ds_factor, fy=ds_factor,
-                            interpolation=cv2.INTER_AREA)
+        frame_small = cv2.resize(
+            frame_gray_full,
+            None,
+            fx=ds_factor,
+            fy=ds_factor,
+            interpolation=cv2.INTER_AREA,
+        )
+        template_gray_small = cv2.resize(
+            self.template_gray,
+            None,
+            fx=ds_factor,
+            fy=ds_factor,
+            interpolation=cv2.INTER_AREA,
+        )
         
         found = self.match_template(frame_small, template_gray_small, self.COARSE_SCALE_RANGE)
         if not found:
             return None
 
-        coarse_max_val, coarse_max_loc, coarse_best_scale = found
+        _, coarse_max_loc, coarse_best_scale = found
 
         # Improve accuracy by performing fine scaling range
-        FINE_SCALE_RANGE = np.arange(coarse_best_scale - 0.01, coarse_best_scale + 0.01, 0.002)
-        fine_found = self.match_template(frame_gray_full, template_gray_full, FINE_SCALE_RANGE)
+        fine_start = max(coarse_best_scale - 0.01, 0.01)
+        fine_end = coarse_best_scale + 0.012
+        fine_scale_range = np.arange(fine_start, fine_end, 0.002)
+        fine_found = self.match_template(frame_gray_full, self.template_gray, fine_scale_range)
         
-        max_val, max_loc, best_scale = fine_found if fine_found else found
-        best_template_length = int(template_gray_full.shape[0] * best_scale)
-        best_template_width = int(template_gray_full.shape[1] * best_scale)
-        
+        if fine_found:
+            _, max_loc, best_scale = fine_found
+        else:
+            max_loc = (int(coarse_max_loc[0] / ds_factor), int(coarse_max_loc[1] / ds_factor))
+            best_scale = coarse_best_scale
+
         top_left = max_loc
-        bottom_right = (top_left[0] + best_template_length, top_left[1] + best_template_width)
+        board_width = int(self.template_width * best_scale)
+        board_height = int(self.template_height * best_scale)
+        bottom_right = (top_left[0] + board_width, top_left[1] + board_height)
         
         return top_left, bottom_right
