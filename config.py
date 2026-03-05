@@ -4,7 +4,7 @@ import os
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 
 MODEL_PATH = os.path.join(BASE_DIR, 'models', 'chess_piece_classifier_mobilenet.h5')
-TEMPLATE_PATH = os.path.join(BASE_DIR, 'templates', 'chessboard_template.png')
+DETECTOR_MODEL_PATH = os.path.join(BASE_DIR, 'models', 'yolo26n.pt')
 
 # Model and Image settings
 SQUARE_SIZE = (64, 64)

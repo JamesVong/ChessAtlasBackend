@@ -1,11 +1,11 @@
 from flask import request, jsonify, current_app as app
-from config import MODEL_PATH, TEMPLATE_PATH
-from chess_analyzer.vision.detector import TemplateBoardDetector
+from config import MODEL_PATH, DETECTOR_MODEL_PATH
+from chess_analyzer.vision.detector import YoloBoardDetector
 from chess_analyzer.ml.predictor import PiecePredictor
 from chess_analyzer.services.analysis_service import ChessAnalysisService
 
 # --- SINGLETON INSTANCES ---
-board_detector = TemplateBoardDetector(template_image_path=TEMPLATE_PATH)
+board_detector = YoloBoardDetector(model_path=DETECTOR_MODEL_PATH)
 piece_predictor = PiecePredictor(model_path=MODEL_PATH)
 analysis_service = ChessAnalysisService(detector=board_detector, predictor=piece_predictor)
 
