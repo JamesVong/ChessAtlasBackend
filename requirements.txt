@@ -1,7 +1,7 @@
 Flask
 Flask-Cors
 tensorflow==2.15.0
-ultralytics
+onnxruntime
 opencv-python-headless
 numpy
 gunicorn

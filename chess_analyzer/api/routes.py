@@ -1,13 +1,20 @@
 from flask import request, jsonify, current_app as app
-from config import MODEL_PATH, DETECTOR_MODEL_PATH
-from chess_analyzer.vision.detector import YoloBoardDetector
-from chess_analyzer.ml.predictor import PiecePredictor
-from chess_analyzer.services.analysis_service import ChessAnalysisService
 
-# --- SINGLETON INSTANCES ---
-board_detector = YoloBoardDetector(model_path=DETECTOR_MODEL_PATH)
-piece_predictor = PiecePredictor(model_path=MODEL_PATH)
-analysis_service = ChessAnalysisService(detector=board_detector, predictor=piece_predictor)
+# Lazy-load models on first request to avoid blocking worker boot.
+_analysis_service = None
+
+def _get_service():
+    global _analysis_service
+    if _analysis_service is None:
+        from config import MODEL_PATH, DETECTOR_MODEL_PATH
+        from chess_analyzer.vision.detector import YoloBoardDetector
+        from chess_analyzer.ml.predictor import PiecePredictor
+        from chess_analyzer.services.analysis_service import ChessAnalysisService
+
+        board_detector = YoloBoardDetector(model_path=DETECTOR_MODEL_PATH)
+        piece_predictor = PiecePredictor(model_path=MODEL_PATH)
+        _analysis_service = ChessAnalysisService(detector=board_detector, predictor=piece_predictor)
+    return _analysis_service
 
 @app.route('/api/v1/analyze-board', methods=['POST'])
 def analyze_board_endpoint():
@@ -19,16 +26,16 @@ def analyze_board_endpoint():
         image_bytes = image_file.read()
         include_cropped_image = request.args.get("include_cropped_image", "true").strip().lower() not in {"0", "false", "no"}
         orientation = request.args.get("orientation", request.form.get("orientation", "White"))
-        
-        result, error_msg = analysis_service.analyze_image(
+
+        result, error_msg = _get_service().analyze_image(
             image_bytes,
             include_cropped_image=include_cropped_image,
             orientation=orientation,
         )
-        
+
         if error_msg:
             return jsonify({"status": "error", "message": error_msg}), 422
-        
+
         return jsonify({"status": "success", "data": result})
 
     except Exception as e:
