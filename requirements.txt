@@ -1,6 +1,6 @@
 Flask
 Flask-Cors
-tensorflow==2.15.0
+torch
 opencv-python-headless
 numpy
 gunicorn
