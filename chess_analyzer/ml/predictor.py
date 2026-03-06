@@ -1,35 +1,31 @@
-import os
-
-os.environ.setdefault("TF_CPP_MIN_LOG_LEVEL", "2")
-os.environ.setdefault("TF_NUM_INTRAOP_THREADS", "1")
-os.environ.setdefault("TF_NUM_INTEROP_THREADS", "1")
-os.environ.setdefault("OMP_NUM_THREADS", "1")
-
-import tensorflow as tf
 import numpy as np
-from config import LABEL_MAPPING
+import onnxruntime as ort
+import cv2
+from config import LABEL_MAPPING, NORM_MEAN, NORM_STD
 
 class PiecePredictor:
     def __init__(self, model_path):
-        try:
-            tf.config.threading.set_intra_op_parallelism_threads(int(os.getenv("TF_NUM_INTRAOP_THREADS", "1")))
-            tf.config.threading.set_inter_op_parallelism_threads(int(os.getenv("TF_NUM_INTEROP_THREADS", "1")))
-        except RuntimeError:
-            # Threading settings can only be applied before TF runtime initializes.
-            pass
-
-        self.model = tf.keras.models.load_model(model_path, compile=False)
+        self.session = ort.InferenceSession(model_path, providers=["CPUExecutionProvider"])
+        self.input_name = self.session.get_inputs()[0].name
+        self.output_name = self.session.get_outputs()[0].name
         self.label_mapping = LABEL_MAPPING
+        mean = np.array(NORM_MEAN, dtype=np.float32).reshape(3, 1, 1)
+        std = np.array(NORM_STD, dtype=np.float32).reshape(3, 1, 1)
+        self._mean = mean
+        self._std = std
 
     def predict(self, squares):
         """
         Predicts the piece on each square.
         Args:
-            squares: A list of 64 preprocessed square images.
+            squares: A numpy array of shape (64, H, W, 3) in BGR uint8.
         Returns:
             A list of 64 string labels for the pieces.
         """
-        images_np = np.asarray(squares, dtype=np.float32) / 255.0
-        predictions = self.model(images_np, training=False).numpy()
-        board_labels = [self.label_mapping[str(np.argmax(p))] for p in predictions]
-        return board_labels
+        # Convert BGR -> RGB, normalize to [0,1], apply mean/std, transpose to NCHW
+        rgb = squares[:, :, :, ::-1].astype(np.float32) / 255.0
+        nchw = np.transpose(rgb, (0, 3, 1, 2))
+        nchw = (nchw - self._mean) / self._std
+
+        predictions = self.session.run([self.output_name], {self.input_name: nchw})[0]
+        return [self.label_mapping[int(np.argmax(p))] for p in predictions]

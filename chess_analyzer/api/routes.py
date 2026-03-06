@@ -6,12 +6,12 @@ _analysis_service = None
 def _get_service():
     global _analysis_service
     if _analysis_service is None:
-        from config import MODEL_PATH, DETECTOR_MODEL_PATH
+        from config import MODEL_PATH, DETECTOR_MODEL_PATH, DETECTOR_INPUT_SIZE
         from chess_analyzer.vision.detector import YoloBoardDetector
         from chess_analyzer.ml.predictor import PiecePredictor
         from chess_analyzer.services.analysis_service import ChessAnalysisService
 
-        board_detector = YoloBoardDetector(model_path=DETECTOR_MODEL_PATH)
+        board_detector = YoloBoardDetector(model_path=DETECTOR_MODEL_PATH, input_size=DETECTOR_INPUT_SIZE)
         piece_predictor = PiecePredictor(model_path=MODEL_PATH)
         _analysis_service = ChessAnalysisService(detector=board_detector, predictor=piece_predictor)
     return _analysis_service
