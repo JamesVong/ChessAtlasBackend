@@ -1,5 +1,17 @@
 from flask import request, jsonify, current_app as app
 
+
+def _rss_mb():
+    try:
+        with open('/proc/self/status') as f:
+            for line in f:
+                if line.startswith('VmRSS:'):
+                    return int(line.split()[1]) / 1024
+    except Exception:
+        pass
+    return -1
+
+
 # Lazy-load models on first request to avoid blocking worker boot.
 _analysis_service = None
 
@@ -11,9 +23,12 @@ def _get_service():
         from chess_analyzer.ml.predictor import PiecePredictor
         from chess_analyzer.services.analysis_service import ChessAnalysisService
 
+        print(f"[MEM] before loading detector: {_rss_mb():.1f} MB", flush=True)
         board_detector = YoloBoardDetector(model_path=DETECTOR_MODEL_PATH, input_size=DETECTOR_INPUT_SIZE)
+        print(f"[MEM] after loading detector: {_rss_mb():.1f} MB", flush=True)
         piece_predictor = PiecePredictor(model_path=MODEL_PATH)
         _analysis_service = ChessAnalysisService(detector=board_detector, predictor=piece_predictor)
+        print(f"[MEM] all models loaded: {_rss_mb():.1f} MB", flush=True)
     return _analysis_service
 
 @app.route('/api/v1/analyze-board', methods=['POST'])
