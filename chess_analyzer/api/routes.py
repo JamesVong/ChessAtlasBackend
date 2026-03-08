@@ -1,4 +1,5 @@
 from flask import request, jsonify, current_app as app
+from chess_analyzer.services.position_lookup import lookup_position
 
 
 def _rss_mb():
@@ -55,4 +56,21 @@ def analyze_board_endpoint():
 
     except Exception as e:
         app.logger.error(f"An unexpected error occurred: {e}")
+        return jsonify({"status": "error", "message": "An internal server error occurred."}), 500
+
+
+@app.route('/api/v1/lookup-position', methods=['GET'])
+def lookup_position_endpoint():
+    fen = request.args.get('fen', '').strip()
+    if not fen:
+        return jsonify({"status": "error", "message": "Missing 'fen' query parameter."}), 400
+
+    try:
+        results = lookup_position(fen)
+        return jsonify({"status": "success", "data": results})
+    except FileNotFoundError as e:
+        app.logger.error(str(e))
+        return jsonify({"status": "error", "message": "Position database is unavailable."}), 503
+    except Exception as e:
+        app.logger.error(f"lookup_position error: {e}")
         return jsonify({"status": "error", "message": "An internal server error occurred."}), 500
