@@ -5,7 +5,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     OMP_NUM_THREADS=1 \
     MALLOC_ARENA_MAX=2 \
     DB_PATH=/app/chess_atlas.db \
-    DB_URL=https://github.com/JamesVong/ChessAtlasBackend/releases/download/v0.1.0-alpha/chess_atlas.db
+    DB_URL=https://github.com/JamesVong/ChessAtlasBackend/releases/download/v1.0.0/chess_atlas.db
 
 WORKDIR /app
 
