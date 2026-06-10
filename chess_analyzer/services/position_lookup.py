@@ -47,25 +47,45 @@ def lookup_position(fen: str) -> list[dict]:
 
     with sqlite3.connect(_DB_PATH) as conn:
         conn.row_factory = sqlite3.Row
-        cur = conn.execute(
+        has_metadata = conn.execute(
+            "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'video_metadata'"
+        ).fetchone() is not None
+
+        if has_metadata:
+            query = """
+                SELECT p.video_id, p.timestamp_seconds, 'white' AS orientation,
+                       m.title, m.author_name
+                  FROM positions p
+                  LEFT JOIN video_metadata m ON m.video_id = p.video_id
+                 WHERE p.zobrist_white = ?
+                UNION ALL
+                SELECT p.video_id, p.timestamp_seconds, 'black' AS orientation,
+                       m.title, m.author_name
+                  FROM positions p
+                  LEFT JOIN video_metadata m ON m.video_id = p.video_id
+                 WHERE p.zobrist_black = ?
             """
-            SELECT video_id, timestamp_seconds, 'white' AS orientation
-              FROM positions
-             WHERE zobrist_white = ?
-            UNION ALL
-            SELECT video_id, timestamp_seconds, 'black' AS orientation
-              FROM positions
-             WHERE zobrist_black = ?
-            """,
-            (zh, zh),
-        )
-        rows = cur.fetchall()
+        else:
+            query = """
+                SELECT video_id, timestamp_seconds, 'white' AS orientation,
+                       NULL AS title, NULL AS author_name
+                  FROM positions
+                 WHERE zobrist_white = ?
+                UNION ALL
+                SELECT video_id, timestamp_seconds, 'black' AS orientation,
+                       NULL AS title, NULL AS author_name
+                  FROM positions
+                 WHERE zobrist_black = ?
+            """
+        rows = conn.execute(query, (zh, zh)).fetchall()
 
     return [
         {
             "video_id": row["video_id"],
             "timestamp_seconds": row["timestamp_seconds"],
             "orientation": row["orientation"],
+            "title": row["title"],
+            "author_name": row["author_name"],
         }
         for row in rows
     ]
